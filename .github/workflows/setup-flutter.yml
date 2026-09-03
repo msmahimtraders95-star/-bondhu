@@ -1,0 +1,45 @@
+name: Setup Bondhu Flutter Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Backup Firebase configuration
+        run: |
+          if [ -f android/app/google-services.json ]; then
+            cp android/app/google-services.json /tmp/google-services.json
+          fi
+
+      - name: Recreate Android project
+        run: |
+          rm -rf android
+          flutter create --platforms=android --project-name bondhu --org com.bondhu .
+          
+      - name: Restore Firebase configuration
+        run: |
+          if [ -f /tmp/google-services.json ]; then
+            cp /tmp/google-services.json android/app/google-services.json
+          fi
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Create Android project structure" || echo "No changes"
+          git push
